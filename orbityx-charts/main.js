@@ -95,6 +95,11 @@ class OrbityxChartApp {
             const candles = this.dataManager.getData();
             // Push data into the renderer; redraw handled by engine.
             this.chartEngine.setData(candles);
+
+            // *** ADD THIS: Calculate and update market stats ***
+            const stats = this.calculateStatsFromCandles(candles);
+            this.updateMarketStats(stats);
+
             console.info(`Loaded ${Array.isArray(candles) ? candles.length : 0} historical candles`);
             this.hideLoadingIndicator();
         }
@@ -175,7 +180,7 @@ class OrbityxChartApp {
      * Handle WebSocket message based on type
      */
     handleWebSocketMessage(data, WS) {
-        // On new candle: refresh dataset; engine redraw handles visuals.
+        // On new candle: refresh dataset
         if (data?.type === 'candle' && data?.payload) {
             if (typeof this.dataManager.subscribe === 'function') {
                 this.chartEngine.setData(this.dataManager.getData());
@@ -183,10 +188,20 @@ class OrbityxChartApp {
             } else {
                 this.chartEngine.setData(this.dataManager.getData());
             }
+
+            // *** ADD THIS: Update stats with new candle data ***
+            const candles = this.dataManager.getData();
+            const stats = this.calculateStatsFromCandles(candles);
+            this.updateMarketStats(stats);
         }
         // On trade tick: update last price and re-render.
         else if (data?.type === 'trade' && typeof data.price === 'number') {
             this.updateLastPrice(data.price);
+
+            // *** ADD THIS: If trade includes 24h stats, update them ***
+            if (data.stats) {
+                this.updateMarketStats(data.stats);
+            }
         }
         // Keep-alive: respond with a 'pong'.
         else if (data?.type === 'heartbeat') {
@@ -380,6 +395,78 @@ class OrbityxChartApp {
             }
         }
         this.wsConnected = false;
+    }
+
+    /**
+     * Update market statistics with real data
+     */
+    updateMarketStats(stats) {
+        // Update 24H High
+        const highElement = document.getElementById('stat-high');
+        if (highElement && stats?.high) {
+            highElement.textContent = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(stats.high);
+        }
+
+        // Update 24H Low
+        const lowElement = document.getElementById('stat-low');
+        if (lowElement && stats?.low) {
+            lowElement.textContent = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(stats.low);
+        }
+
+        // Update 24H Volume
+        const volumeElement = document.getElementById('stat-volume');
+        if (volumeElement && stats?.volume) {
+            const volumeInBillions = stats.volume / 1000000000;
+            volumeElement.textContent = `$${volumeInBillions.toFixed(2)}B`;
+        }
+
+        // Update Market Cap
+        const marketCapElement = document.getElementById('stat-marketcap');
+        if (marketCapElement && stats?.marketCap) {
+            const marketCapInTrillions = stats.marketCap / 1000000000000;
+            marketCapElement.textContent = `$${marketCapInTrillions.toFixed(2)}T`;
+        }
+    }
+
+    /**
+     * Calculate 24H high, low, volume from candle data
+     */
+    calculateStatsFromCandles(candles) {
+        if (!candles || candles.length === 0) {
+            return {
+                high: 0,
+                low: 0,
+                volume: 0,
+                marketCap: 0  // You'll need to get this from API
+            };
+        }
+
+        // Get the last 24 hours of candles (or all if less than 24h)
+        const now = Date.now();
+        const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
+        const recentCandles = candles.filter(c => c.timestamp >= twentyFourHoursAgo);
+
+        // If we don't have 24h of data, use all available
+        const candlesToUse = recentCandles.length > 0 ? recentCandles : candles;
+
+        const stats = {
+            high: Math.max(...candlesToUse.map(c => c.high)),
+            low: Math.min(...candlesToUse.map(c => c.low)),
+            volume: candlesToUse.reduce((sum, c) => sum + (c.volume || 0), 0),
+            marketCap: 0 // Market cap usually comes from API, not candles
+        };
+
+        return stats;
     }
 }
 
