@@ -92,7 +92,7 @@ Whether you're building a crypto trading terminal, a stock market dashboard, a f
 ║                    Orbityx Chart Pro                          ║
 ║                                                               ║
 ║   Your App                                                    ║
-║   ─────────────────────────────────────────────────────────  ║
+║   ─────────────────────────────────────────────────────────   ║
 ║   chart.setProvider(new BinanceProvider())                    ║
 ║         .registerInstruments([...])                           ║
 ║         .setWebSocketUrl('wss://...')                         ║
@@ -167,10 +167,10 @@ Orbityx Chart Pro follows a clean **layered architecture** with strict separatio
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Application Layer                        │
 │                         main.ts / OrbityxChart                  │
-│   Orchestrates init, data loading, WS setup, UI wiring         │
+│   Orchestrates init, data loading, WS setup, UI wiring          │
 ├─────────────────────────────────────────────────────────────────┤
 │                          UI Layer                               │
-│   toolbar.ts │ tooltip.ts │ legend.ts │ theme.ts               │
+│   toolbar.ts │ tooltip.ts │ legend.ts │ theme.ts                │
 │   Pure DOM manipulation — no data fetching                      │
 ├────────────────────┬────────────────────────────────────────────┤
 │    Core Layer      │           Services Layer                   │
@@ -466,8 +466,8 @@ When `fetchCandles` is called, it receives a `CandleRequest` object:
 
 | Field          | Type                | Description                                                      |
 |----------------|---------------------|------------------------------------------------------------------|
-| `instrumentId` | `string`            | The instrument id as registered (e.g. `'BTCUSDT'`, `'AAPL'`)   |
-| `timeframe`    | `string`            | Active timeframe key (e.g. `'1h'`, `'1d'`)                      |
+| `instrumentId` | `string`            | The instrument id as registered (e.g. `'BTCUSDT'`, `'AAPL'`)     |
+| `timeframe`    | `string`            | Active timeframe key (e.g. `'1h'`, `'1d'`)                       |
 | `from`         | `number?`           | Optional start epoch-ms for the window                           |
 | `to`           | `number?`           | Optional end epoch-ms. When set: fetch one backwards page only   |
 | `limit`        | `number?`           | Optional maximum number of candles to return                     |
@@ -764,8 +764,8 @@ engine.setChartType('bars');
 
 | Type           | Description                                                                           |
 |----------------|---------------------------------------------------------------------------------------|
-| `candlestick`  | Classic OHLC candlestick chart with colored body and wicks                           |
-| `heikin_ashi`  | Smoothed candlesticks computed from the Heikin-Ashi formula                          |
+| `candlestick`  | Classic OHLC candlestick chart with colored body and wicks                            |
+| `heikin_ashi`  | Smoothed candlesticks computed from the Heikin-Ashi formula                           |
 | `line`         | Simple line chart connecting close prices                                             |
 | `area`         | Filled area chart with gradient below the line                                        |
 | `bars`         | OHLC bar (American) chart with left/right tick marks                                  |
@@ -957,14 +957,14 @@ const chart = new OrbityxChart({ canvasId: 'chartCanvas' });
 
 #### Configuration methods (chainable)
 
-| Method                                      | Returns | Description                                           |
-|---------------------------------------------|---------|-------------------------------------------------------|
-| `setProvider(provider: DataProvider)`       | `this`  | Register the data provider (required before init)     |
-| `registerInstrument(instrument: Instrument)` | `this`  | Register a single instrument                          |
-| `registerInstruments(instruments: Instrument[])` | `this` | Register multiple instruments at once              |
-| `setWebSocketUrl(url: string)`              | `this`  | Set the WebSocket endpoint (optional)                 |
-| `setDefaultInstrument(id: string)`          | `this`  | Override the initial instrument (default: first registered) |
-| `setDefaultTimeframe(tf: string)`           | `this`  | Override the initial timeframe (default: `'1d'`)     |
+| Method                                           | Returns | Description                                                 |
+|--------------------------------------------------|---------|-------------------------------------------------------------|
+| `setProvider(provider: DataProvider)`            | `this`  | Register the data provider (required before init)           |
+| `registerInstrument(instrument: Instrument)`     | `this`  | Register a single instrument                                |
+| `registerInstruments(instruments: Instrument[])` | `this`  | Register multiple instruments at once                       |
+| `setWebSocketUrl(url: string)`                   | `this`  | Set the WebSocket endpoint (optional)                       |
+| `setDefaultInstrument(id: string)`               | `this`  | Override the initial instrument (default: first registered) |
+| `setDefaultTimeframe(tf: string)`                | `this`  | Override the initial timeframe (default: `'1d'`)            |
 
 #### Lifecycle methods
 
@@ -1059,7 +1059,7 @@ import { registry } from './services/api.js';
 | `registerInstruments(instruments: Instrument[])`   | Add multiple instruments                                       |
 | `unregisterInstrument(id: string)`                 | Remove an instrument by id                                     |
 | `getInstrument(id: string)`                        | Look up a registered instrument by id                          |
-| `getAllInstruments(): Instrument[]`                 | All registered instruments in insertion order                  |
+| `getAllInstruments(): Instrument[]`                | All registered instruments in insertion order                  |
 | `fetchCandles(request: CandleRequest)`             | Delegate to the provider (validates instrument id first)       |
 | `fetchMarketStats(instrumentId: string)`           | Delegate to the provider (returns null if not implemented)     |
 | `notifyInstrumentChange(id, tf)`                   | Call `provider.onInstrumentChange()` if implemented            |
@@ -1169,21 +1169,21 @@ import {
 
 | Function                                              | Description                                                       |
 |-------------------------------------------------------|-------------------------------------------------------------------|
-| `toFixedTrim(value, digits?)`                         | Format to fixed decimals, trim trailing zeros → `"12.34"`        |
-| `parseNumber(str)`                                    | Lenient number parser, strips `$`, `,`, etc.                     |
-| `isFiniteNumber(n)`                                   | Type guard: `typeof n === 'number' && isFinite(n)`               |
+| `toFixedTrim(value, digits?)`                         | Format to fixed decimals, trim trailing zeros → `"12.34"`         |
+| `parseNumber(str)`                                    | Lenient number parser, strips `$`, `,`, etc.                      |
+| `isFiniteNumber(n)`                                   | Type guard: `typeof n === 'number' && isFinite(n)`                |
 | `clamp(val, min, max)`                                | Constrain to inclusive range                                      |
 | `round(n, precision?)`                                | Round to N decimal places                                         |
 | `sum(arr)`                                            | Sum finite values, skips NaN/Infinity                             |
 | `avg(arr)`                                            | Arithmetic mean of finite values                                  |
-| `sma(values, period)`                                 | Simple moving average — returns same-length array (NaN for early)|
+| `sma(values, period)`                                 | Simple moving average — returns same-length array (NaN for early) |
 | `ema(values, period)`                                 | Exponential moving average seeded with SMA                        |
-| `rsi(closes, period?)`                                | RSI using Wilder's smoothing (default period: 14)                |
-| `macd(closes, fast?, slow?, signal?)`                 | Returns `{ macdLine, signalLine, histogram }` arrays             |
-| `bollingerBands(closes, period?, multiplier?)`        | Returns `{ upper, middle, lower }` arrays                        |
+| `rsi(closes, period?)`                                | RSI using Wilder's smoothing (default period: 14)                 |
+| `macd(closes, fast?, slow?, signal?)`                 | Returns `{ macdLine, signalLine, histogram }` arrays              |
+| `bollingerBands(closes, period?, multiplier?)`        | Returns `{ upper, middle, lower }` arrays                         |
 | `stdDev(values)`                                      | Population standard deviation                                     |
 | `lerp(a, b, t)`                                       | Linear interpolation                                              |
-| `mapRange(value, inMin, inMax, outMin, outMax)`        | Map value from one range to another                               |
+| `mapRange(value, inMin, inMax, outMin, outMax)`       | Map value from one range to another                               |
 | `niceAxisTicks(min, max, targetCount?)`               | Generate "nice" human-readable axis tick values                   |
 
 ---
@@ -1197,26 +1197,26 @@ import {
 } from './utils/format.js';
 ```
 
-| Function                                              | Description                                                       |
-|-------------------------------------------------------|-------------------------------------------------------------------|
-| `formatCurrency(value, currency?, minFrac?, maxFrac?)` | Format as currency: `"$1,234.56"`                                |
-| `formatPrice(value, currency?, precision?)`           | Auto-precision: <$0.01 → 6dp, <$1 → 4dp, else 2–4dp             |
-| `formatNumber(value, minFrac?, maxFrac?)`             | Format plain number with Intl                                     |
-| `formatPercent(value)`                                | 0–1 range → `"12.34%"` via Intl                                  |
-| `formatPct(value, decimals?)`                         | 0–100 range → `"+12.34%"` with sign                              |
-| `formatVolume(value)`                                 | K/M/B suffix: `"1.23M"`, `"456.78K"`                            |
-| `formatCompact(value, maxFrac?)`                      | Intl compact notation: `"1.2M"`, `"3.4B"`                       |
+| Function                                               | Description                                                       |
+|--------------------------------------------------------|-------------------------------------------------------------------|
+| `formatCurrency(value, currency?, minFrac?, maxFrac?)` | Format as currency: `"$1,234.56"`                                 |
+| `formatPrice(value, currency?, precision?)`            | Auto-precision: <$0.01 → 6dp, <$1 → 4dp, else 2–4dp               |
+| `formatNumber(value, minFrac?, maxFrac?)`              | Format plain number with Intl                                     |
+| `formatPercent(value)`                                 | 0–1 range → `"12.34%"` via Intl                                   |
+| `formatPct(value, decimals?)`                          | 0–100 range → `"+12.34%"` with sign                               |
+| `formatVolume(value)`                                  | K/M/B suffix: `"1.23M"`, `"456.78K"`                              |
+| `formatCompact(value, maxFrac?)`                       | Intl compact notation: `"1.2M"`, `"3.4B"`                         |
 
 All functions accept `unknown` and return `''` for invalid input.
 
 `formatPrice` auto-precision logic:
 
 | Absolute value | Min decimals | Max decimals |
-|---------------|-------------|-------------|
-| < $0.01        | 6           | 8           |
-| < $1.00        | 4           | 6           |
-| < $100.00      | 2           | 4           |
-| ≥ $100.00      | 2           | 2           |
+|----------------|-------------|---------------|
+| < $0.01        | 6           | 8             |
+| < $1.00        | 4           | 6             |
+| < $100.00      | 2           | 4             |
+| ≥ $100.00      | 2           | 2             |
 
 ---
 
@@ -1524,12 +1524,12 @@ socket.onmessage = (ev) => {
 
 ## 🌐 Browser Support
 
-| Browser          | Minimum Version | Notes                                 |
-|------------------|-----------------|---------------------------------------|
-| Chrome / Edge    | 80+             | Full support                          |
-| Firefox          | 75+             | Full support                          |
+| Browser          | Minimum Version | Notes                                                       |
+|------------------|-----------------|-------------------------------------------------------------|
+| Chrome / Edge    | 80+             | Full support                                                |
+| Firefox          | 75+             | Full support                                                |
 | Safari           | 14+             | Full support (requires `ctx.roundRect` polyfill for < 15.4) |
-| Opera            | 67+             | Full support                          |
+| Opera            | 67+             | Full support                                                |
 
 **Required browser APIs:**
 - `HTMLCanvasElement` + Canvas 2D Context
