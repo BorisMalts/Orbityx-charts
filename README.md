@@ -1678,9 +1678,9 @@ See the full [LICENSE](./LICENSE) file for details.
   <tr>
     <td align="center">
       <a href="https://github.com/BorisMalts">
-        <img src="https://github.com/BorisMalts.png" width="100px;" alt="Boris Malts" style="border-radius: 50%;"/>
+        <img src="https://github.com/BorisMalts.png" width="100px;" alt="Boris Maltsev" style="border-radius: 50%;"/>
         <br />
-        <b>Boris Malts</b>
+        <b>Boris Maltsev</b>
       </a>
       <br />
       <sub>Developer</sub>
