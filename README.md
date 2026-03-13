@@ -1683,7 +1683,7 @@ See the full [LICENSE](./LICENSE) file for details.
         <b>Boris Malts</b>
       </a>
       <br />
-      <sub>Lead Developer · Architecture · Chart Engine</sub>
+      <sub>Developer</sub>
       <br />
       <a href="https://github.com/BorisMalts">@BorisMalts</a>
     </td>
@@ -1694,7 +1694,7 @@ See the full [LICENSE](./LICENSE) file for details.
         <b>Andrey Karavaev</b>
       </a>
       <br />
-      <sub>Developer · Providers · UI Components</sub>
+      <sub>Developer</sub>
       <br />
       <a href="https://github.com/Andre-wb">@Andre-wb</a>
     </td>

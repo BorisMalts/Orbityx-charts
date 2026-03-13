@@ -1,4 +1,5 @@
 package-lock.json
 tests/.env
-node_modules__pycache__/
+node_modules
+__pycache__/
 *.pyc
