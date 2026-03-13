@@ -31,7 +31,7 @@ export const INDICATOR_META: Record<IndicatorId, { label: string; color: string;
 // ─────────────────────────────────────────────────────────────────────────────
 
 function toPoints(timestamps: number[], values: number[]): IndicatorPoint[] {
-    return timestamps.map((t, i) => ({ timestamp: t, value: values[i] }));
+    return timestamps.map((t, i) => ({ timestamp: t, value: values[i] ?? NaN }));
 }
 
 /** Compute a simple series indicator for the given candles. */
@@ -70,9 +70,9 @@ function computeBB(candles: Candle[]): IndicatorSeries {
     const meta = INDICATOR_META.bb_20;
     const bollingerPoints: BollingerPoint[] = candles.map((c, i) => ({
         timestamp: c.timestamp,
-        upper: upper[i],
-        middle: middle[i],
-        lower: lower[i],
+        upper: upper[i] ?? NaN,
+        middle: middle[i] ?? NaN,
+        lower: lower[i] ?? NaN,
     }));
     return {
         id: 'bb_20',
@@ -106,9 +106,9 @@ function computeMACD(candles: Candle[]): IndicatorSeries {
     const meta = INDICATOR_META.macd;
     const macdPoints: MACDPoint[] = candles.map((c, i) => ({
         timestamp: c.timestamp,
-        macd:      macdLine[i],
-        signal:    signalLine[i],
-        histogram: histogram[i],
+        macd:      macdLine[i] ?? NaN,
+        signal:    signalLine[i] ?? NaN,
+        histogram: histogram[i] ?? NaN,
     }));
     return {
         id: 'macd',

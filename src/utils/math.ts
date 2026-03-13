@@ -64,7 +64,7 @@ export function sma(values: readonly number[], period: number): number[] {
     const result: number[] = new Array(values.length).fill(NaN);
     for (let i = period - 1; i < values.length; i++) {
         let s = 0;
-        for (let j = 0; j < period; j++) s += values[i - j];
+        for (let j = 0; j < period; j++) s += values[i - j]!;
         result[i] = s / period;
     }
     return result;
@@ -77,11 +77,11 @@ export function ema(values: readonly number[], period: number): number[] {
     const k = 2 / (period + 1);
     // Seed with simple average.
     let prev = 0;
-    for (let i = 0; i < period; i++) prev += values[i];
+    for (let i = 0; i < period; i++) prev += values[i]!;
     prev /= period;
     result[period - 1] = prev;
     for (let i = period; i < values.length; i++) {
-        prev = values[i] * k + prev * (1 - k);
+        prev = values[i]! * k + prev * (1 - k);
         result[i] = prev;
     }
     return result;
@@ -108,7 +108,7 @@ export function rsi(closes: readonly number[], period = 14): number[] {
 
     // Initial average gain/loss over the first period.
     for (let i = 1; i <= period; i++) {
-        const diff = closes[i] - closes[i - 1];
+        const diff = closes[i]! - closes[i - 1]!;
         if (diff > 0) avgGain += diff;
         else avgLoss += Math.abs(diff);
     }
@@ -119,7 +119,7 @@ export function rsi(closes: readonly number[], period = 14): number[] {
 
     // Wilder's smoothing for subsequent values.
     for (let i = period + 1; i < closes.length; i++) {
-        const diff = closes[i] - closes[i - 1];
+        const diff = closes[i]! - closes[i - 1]!;
         const gain = diff > 0 ? diff : 0;
         const loss = diff < 0 ? Math.abs(diff) : 0;
         avgGain = (avgGain * (period - 1) + gain) / period;
@@ -169,8 +169,8 @@ export function bollingerBands(
     for (let i = period - 1; i < closes.length; i++) {
         const slice = closes.slice(i - period + 1, i + 1) as number[];
         const sd = stdDev(slice);
-        upper[i] = middle[i] + multiplier * sd;
-        lower[i] = middle[i] - multiplier * sd;
+        upper[i] = middle[i]! + multiplier * sd;
+        lower[i] = middle[i]! - multiplier * sd;
     }
     return { upper, middle, lower };
 }
