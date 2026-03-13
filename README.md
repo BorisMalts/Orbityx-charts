@@ -1653,7 +1653,7 @@ Please open a [GitHub issue](https://github.com/BorisMalts/Orbityx-charts/issues
 ## 📄 License
 
 ```
-Copyright 2025 Boris Malts, Andrey Karavaev
+Copyright 2025 Boris Maltsev, Andrey Karavaev
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1707,7 +1707,7 @@ See the full [LICENSE](./LICENSE) file for details.
 
 **[⬆ Back to top](#orbityx-chart-pro)**
 
-Made by [Boris Malts](https://github.com/BorisMalts) and [Andrey Karavaev](https://github.com/Andre-wb)
+Made by [Boris Maltsev](https://github.com/BorisMalts) and [Andrey Karavaev](https://github.com/Andre-wb)
 
 [![GitHub](https://img.shields.io/badge/GitHub-Orbityx--charts-181717?style=for-the-badge&logo=github)](https://github.com/BorisMalts/Orbityx-charts)
 
