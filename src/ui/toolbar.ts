@@ -131,7 +131,7 @@ function buildIndicatorDropdown(): string {
     for (const [id, meta] of Object.entries(INDICATOR_META)) {
         const typedId = id as IndicatorId;
         if (!groups[meta.group]) groups[meta.group] = [];
-        groups[meta.group].push({ id: typedId, label: meta.label });
+        groups[meta.group]!.push({ id: typedId, label: meta.label });
     }
 
     return Object.entries(groups).map(([group, items]) => `
