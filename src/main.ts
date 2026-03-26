@@ -67,6 +67,8 @@ import type {
     ChartType,
     Timeframe,
     WSMessage,
+    PriceAlert,
+    CompareSeriesData,
 } from './types/index.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -173,10 +175,20 @@ class OrbityxChart {
             await this.loadData();
             this.engine.init(dataManager);
 
+            // Accessibility: create live region for price announcements
+            this.setupAccessibilityRegion();
+
             // Wire the engine's lazy-load hook to our history fetcher.
-            // The engine sets fetchingMoreHistory = true before calling this;
-            // loadMoreHistory() resets both flags when the request finishes.
             this.engine.onNeedMoreData = () => { void this.loadMoreHistory(); };
+
+            // Load persisted alerts
+            this.engine.loadAlerts();
+            this.engine.onAlertTriggered = (alert: PriceAlert) => {
+                console.info(`[Orbityx] Alert triggered: ${alert.message}`);
+            };
+
+            // Keyboard shortcut help overlay
+            window.addEventListener('orbityx:showShortcuts', () => this.showShortcutsHelp());
 
             this.refreshStats();
             this.statsTimer = setInterval(() => this.refreshStats(), STATS_REFRESH_MS);
@@ -303,7 +315,12 @@ class OrbityxChart {
         this.activeId = id;
         this.legendUnsub?.();
         this.legendUnsub = initLegend(id);
+
+        // Reconnect WebSocket for the new instrument to avoid stale listeners.
+        this.wsUnsub?.();
         registry.notifyInstrumentChange(id, this.timeframe);
+        this.setupWebSocket();
+
         this.loadData().then(() => this.refreshStats()).catch(console.error);
     }
 
@@ -313,7 +330,12 @@ class OrbityxChart {
         this.engine.fetchingMoreHistory = false;
 
         this.timeframe = tf;
+
+        // Reconnect WebSocket for the new timeframe.
+        this.wsUnsub?.();
         registry.notifyInstrumentChange(this.activeId, tf);
+        this.setupWebSocket();
+
         this.loadData().then(() => this.engine.resetView()).catch(console.error);
     }
 
@@ -382,6 +404,80 @@ class OrbityxChart {
         }
     }
 
+    // ── Compare Instruments ────────────────────────────────────────────────
+
+    /**
+     * Add a compare/overlay instrument. Fetches its data and adds to engine.
+     * @param instrumentId Registered instrument ID to overlay.
+     * @param color CSS color for the overlay line.
+     */
+    async addCompare(instrumentId: string, color = '#f59e0b'): Promise<void> {
+        try {
+            const instrument = registry.getInstrument(instrumentId);
+            const candles = await dataManager.loadCandles(instrumentId, this.timeframe);
+            if (!candles.length) return;
+            const series: CompareSeriesData = {
+                instrumentId,
+                symbol: instrument?.symbol ?? instrumentId,
+                color,
+                data: candles,
+                basePrice: candles[0]!.close,
+            };
+            this.engine.addCompareSeries(series);
+        } catch (err) {
+            console.warn('[Orbityx] addCompare failed:', err);
+        }
+    }
+
+    removeCompare(instrumentId: string): void {
+        this.engine.removeCompareSeries(instrumentId);
+    }
+
+    // ── Shortcuts help ──────────────────────────────────────────────────────
+
+    private showShortcutsHelp(): void {
+        const existing = document.getElementById('orbityx-shortcuts-modal');
+        if (existing) { existing.remove(); return; }
+        const modal = document.createElement('div');
+        modal.id = 'orbityx-shortcuts-modal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);';
+        modal.innerHTML = `
+            <div style="background:var(--surface-1,#1a1f2e);border:1px solid var(--border,#333);border-radius:12px;padding:24px;max-width:400px;width:90%;color:var(--text-1,#e0e0e0);font-family:'JetBrains Mono',monospace;font-size:12px;">
+                <h3 style="margin:0 0 16px;font-size:15px;">Keyboard Shortcuts</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                    <span><kbd>+</kbd> / <kbd>-</kbd></span><span>Zoom in/out</span>
+                    <span><kbd>←</kbd> <kbd>→</kbd></span><span>Pan left/right</span>
+                    <span><kbd>Home</kbd></span><span>Reset view</span>
+                    <span><kbd>Esc</kbd></span><span>Cancel / Stop replay</span>
+                    <span><kbd>L</kbd></span><span>Cycle scale (Lin/Log/%)</span>
+                    <span><kbd>M</kbd></span><span>Toggle magnet mode</span>
+                    <span><kbd>Ctrl+S</kbd></span><span>Download screenshot</span>
+                    <span><kbd>Space</kbd></span><span>Play/Pause replay</span>
+                    <span><kbd>?</kbd></span><span>Show this help</span>
+                </div>
+                <button onclick="this.closest('#orbityx-shortcuts-modal').remove()" style="margin-top:16px;padding:6px 18px;background:var(--surface-2,#2a2f3e);border:1px solid var(--border,#444);border-radius:6px;color:inherit;cursor:pointer;">Close</button>
+            </div>
+        `;
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        document.body.appendChild(modal);
+    }
+
+    private setupAccessibilityRegion(): void {
+        let region = document.getElementById('orbityx-sr-live');
+        if (!region) {
+            region = document.createElement('div');
+            region.id = 'orbityx-sr-live';
+            region.setAttribute('role', 'status');
+            region.setAttribute('aria-live', 'polite');
+            region.setAttribute('aria-atomic', 'true');
+            region.className = 'sr-only';
+            region.style.cssText =
+                'position:absolute;width:1px;height:1px;padding:0;margin:-1px;' +
+                'overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;';
+            document.body.appendChild(region);
+        }
+    }
+
     private startFPSMonitor(): void {
         let last = performance.now();
         const el = document.getElementById('frame-rate');
@@ -410,3 +506,8 @@ function setText(sel: string, val: string): void {
 export default OrbityxChart;
 export { registry };
 export type { DataProvider, Instrument } from './types/index.js';
+export { registerIndicator, unregisterIndicator, getRegisteredIndicators } from './core/indicators.js';
+export { applyLayout, resetLayout, syncCrosshair } from './core/multi-chart.js';
+export type { LayoutMode } from './core/multi-chart.js';
+export { OrbitScript, compile as orbitCompile, register as orbitRegister, unregister as orbitUnregister } from './orbitscript/index.js';
+export type { CompiledScript, ScriptMeta, InputDef } from './orbitscript/index.js';

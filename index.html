@@ -82,7 +82,11 @@
 
             <!-- Canvas container -->
             <div class="chart-container">
-                <canvas id="chartCanvas" role="img" aria-label="Price chart"></canvas>
+                <canvas id="chartCanvas" role="img" aria-label="Price chart" style="touch-action: none;"></canvas>
+                <div id="chart-summary" class="sr-only" role="status" aria-live="polite"
+                     style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">
+                  Chart loading...
+                </div>
             </div>
         </section>
 
@@ -148,6 +152,14 @@
                     </div>
                 </div>
 
+                <!-- Alerts section -->
+                <div class="indicators-section">
+                    <div class="section-title">Price Alerts</div>
+                    <div id="alerts-list" style="font-size:11px;color:var(--text-3);">
+                        <span>None — use toolbar to add</span>
+                    </div>
+                </div>
+
                 <!-- Keyboard shortcuts hint -->
                 <div style="padding: 10px; background: var(--surface-2); border-radius: var(--radius-xs); border: 1px solid var(--border);">
                     <div class="section-title" style="margin-bottom:6px;">Keyboard Shortcuts</div>
@@ -155,7 +167,12 @@
                         <span><kbd>+</kbd> / <kbd>-</kbd> Zoom in/out</span>
                         <span><kbd>←</kbd> <kbd>→</kbd> Pan history</span>
                         <span><kbd>Home</kbd> Reset view</span>
-                        <span><kbd>Esc</kbd> Cancel drawing</span>
+                        <span><kbd>Esc</kbd> Cancel / Stop replay</span>
+                        <span><kbd>L</kbd> Scale (Lin/Log/%)</span>
+                        <span><kbd>M</kbd> Magnet mode</span>
+                        <span><kbd>Ctrl+S</kbd> Screenshot</span>
+                        <span><kbd>Space</kbd> Play/Pause replay</span>
+                        <span><kbd>?</kbd> All shortcuts</span>
                     </div>
                 </div>
 

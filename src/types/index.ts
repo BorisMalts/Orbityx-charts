@@ -207,10 +207,19 @@ export interface WSMessage {
 // Chart config & state
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ChartType   = 'candlestick' | 'line' | 'area' | 'bars' | 'heikin_ashi';
-export type DrawingMode = 'none' | 'trendline' | 'horizontal' | 'vertical' | 'fibonacci' | 'rectangle';
+export type ChartType   = 'candlestick' | 'line' | 'area' | 'bars' | 'heikin_ashi' | 'hollow_candle' | 'baseline';
+export type DrawingMode =
+    | 'none' | 'trendline' | 'horizontal' | 'vertical' | 'fibonacci' | 'rectangle'
+    | 'ray' | 'extended_line' | 'parallel_channel' | 'pitchfork'
+    | 'arrow' | 'text' | 'measure';
+export type ScaleType   = 'linear' | 'logarithmic' | 'percentage';
 export type ThemeName   = 'dark' | 'light';
 export type IndicatorId = 'sma_20' | 'sma_50' | 'sma_200' | 'ema_12' | 'ema_26' | 'bb_20' | 'rsi_14' | 'macd' | 'volume';
+
+/**
+ * Custom indicator IDs are plain strings — not restricted to the IndicatorId union.
+ * Use `registerIndicator()` to add custom indicators at runtime.
+ */
 
 export interface Margin {
     top: number; right: number; bottom: number; left: number;
@@ -232,9 +241,31 @@ export interface ChartConfig {
     margin:           Margin;
     volumePanelRatio: number;
     volumePanelGap:   number;
+    /** Number of candles from the left edge that triggers lazy history loading. */
+    lazyLoadThreshold: number;
+    /** Price range padding multiplier (fraction of hi-lo range). */
+    pricePadding:     number;
+    /** Fallback padding when hi === lo (fraction of price). */
+    pricePaddingFlat: number;
+    /** Height in CSS pixels of each sub-panel (RSI, MACD). */
+    subPanelHeight:   number;
+    /** Min/max zoom bounds for scaleX. */
+    zoomMin:          number;
+    zoomMax:          number;
+    /** Zoom factor applied per step (wheel click or +/- key). */
+    zoomStep:         number;
+    /** Number of candles to scroll per arrow key press. */
+    keyScrollStep:    number;
+    /** Font used for axis labels and price tags. */
+    font:             string;
+    /** Smaller font used for muted/secondary labels. */
+    fontSmall:        string;
 }
 
-export interface ChartState {
+// ── Segregated State Interfaces (ISP) ─────────────────────────────────────
+
+/** Viewport / data windowing state — consumed by viewport.ts. */
+export interface ViewportState {
     data:             Candle[];
     visibleData:      Candle[];
     viewportStart:    number;
@@ -242,18 +273,86 @@ export interface ChartState {
     offsetCandles:    number;
     minPrice:         number;
     maxPrice:         number;
-    width:            number;
-    height:           number;
+}
+
+/** Physical canvas dimensions. */
+export interface CanvasState {
+    width:  number;
+    height: number;
+}
+
+/** Mouse / touch / drawing interaction state. */
+export interface InteractionState {
+    isDragging:   boolean;
+    dragStartX:   number;
+    mouseX:       number;
+    mouseY:       number;
+    mouseInside:  boolean;
+    drawingMode:  DrawingMode;
+}
+
+/** Visual display options — chart type, scale, indicators. */
+export interface DisplayState {
     currentPrice:     number;
-    isDragging:       boolean;
-    dragStartX:       number;
-    mouseX:           number;
-    mouseY:           number;
-    mouseInside:      boolean;
-    drawingMode:      DrawingMode;
     chartType:        ChartType;
+    scaleType:        ScaleType;
+    magnetEnabled:    boolean;
     activeIndicators: Set<IndicatorId>;
     rafPending:       boolean;
+    baselinePrice:    number;
+}
+
+/**
+ * Full chart state — intersection of all sub-states.
+ * Kept as a single interface for backward compatibility; consumers
+ * should prefer the narrower sub-interfaces where possible.
+ */
+export interface ChartState extends ViewportState, CanvasState, InteractionState, DisplayState {}
+
+// ── Abstraction Interfaces (DIP) ──────────────────────────────────────────
+
+/**
+ * Minimal data-fetching contract used by DataManager.
+ * Allows injecting any fetcher (ProviderRegistry, mock, etc.)
+ * instead of importing the singleton directly.
+ */
+export interface ICandleFetcher {
+    fetchCandles(request: CandleRequest): Promise<RawCandle[] | Candle[]>;
+}
+
+/**
+ * UI-facing contract for chart controls.
+ * Toolbar, tooltip, and other UI modules depend on this interface
+ * instead of the concrete ChartEngine class (DIP).
+ */
+export interface IChartControls {
+    readonly canvas: HTMLCanvasElement;
+    readonly state:  ChartState;
+    setChartType(type: ChartType): void;
+    setDrawingMode(mode: DrawingMode): void;
+    clearDrawings(): void;
+    toggleIndicator(id: IndicatorId): void;
+    zoomIn(): void;
+    zoomOut(): void;
+    resetView(): void;
+    setScaleType(scale: ScaleType): void;
+    cycleScaleType(): void;
+    toggleMagnet(): void;
+    downloadScreenshot(filename?: string): void;
+    copyScreenshotToClipboard(): Promise<void>;
+    getCandleAtCursor(): Candle | null;
+    requestDraw(): void;
+    // Alert delegation
+    addAlert(alert: PriceAlert): void;
+    removeAlert(id: string): void;
+    // Replay delegation
+    readonly replay: ReplayState;
+    startReplay(): void;
+    stopReplay(): void;
+    toggleReplayPause(): void;
+    setReplaySpeed(speed: number): void;
+    replayStep(): void;
+    replayStepBack(): void;
 }
 
 export interface IndicatorPoint   { timestamp: number; value: number; }
@@ -281,6 +380,64 @@ export interface Drawing {
     lineWidth: number;
     label?:    string;
     isDraft:   boolean;
+    /** User-entered text for text-label drawings. */
+    text?:     string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Alerts
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type AlertCondition = 'crosses_above' | 'crosses_below' | 'crosses';
+
+export interface PriceAlert {
+    id:           string;
+    instrumentId: string;
+    price:        number;
+    condition:    AlertCondition;
+    message:      string;
+    color:        string;
+    enabled:      boolean;
+    triggered:    boolean;
+    createdAt:    number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Compare / Overlay
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CompareSeriesData {
+    instrumentId: string;
+    symbol:       string;
+    color:        string;
+    data:         Candle[];
+    /** Base price (first candle close) for percentage normalisation. */
+    basePrice:    number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Replay
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ReplayState {
+    active:      boolean;
+    /** Index up to which candles are revealed. */
+    cursor:      number;
+    speed:       number;   // 1 = 1 bar/sec, 2 = 2 bars/sec, etc.
+    paused:      boolean;
+    /** Full dataset (replay reveals a growing slice). */
+    fullData:    Candle[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Measure
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface MeasureResult {
+    priceDelta:   number;
+    pricePct:     number;
+    bars:         number;
+    timeDelta:    number;   // ms
 }
 
 export interface AppEvents {
@@ -290,6 +447,11 @@ export interface AppEvents {
     chartTypeChanged:   ChartType;
     indicatorToggled:   IndicatorId;
     drawingModeChanged: DrawingMode;
+    scaleTypeChanged:   ScaleType;
     dataLoaded:         Candle[];
     priceUpdated:       number;
+    alertTriggered:     PriceAlert;
+    replayStateChanged: ReplayState;
+    compareChanged:     CompareSeriesData[];
+    screenshotTaken:    string; // data URL
 }

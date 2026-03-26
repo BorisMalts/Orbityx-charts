@@ -47,14 +47,17 @@ export interface BinanceOptions {
      * Affects both the initial load and each lazy-load page.
      */
     limit?: number;
+    /** Request timeout in milliseconds (default 10 000). */
+    timeout?: number;
 }
 
 // Raw kline tuple as returned by GET /api/v3/klines.
 type KLine = [number, string, string, string, string, string, ...unknown[]];
 
 export class BinanceProvider implements DataProvider {
-    private base:  string;
-    private limit: number | undefined;
+    private base:    string;
+    private limit:   number | undefined;
+    private timeout: number;
 
     /**
      * Number of backwards pagination requests made during the initial load.
@@ -64,8 +67,9 @@ export class BinanceProvider implements DataProvider {
     private readonly INITIAL_PAGES = 3;
 
     constructor(opts: BinanceOptions = {}) {
-        this.base  = (opts.baseUrl ?? BASE).replace(/\/$/, '');
-        this.limit = opts.limit;
+        this.base    = (opts.baseUrl ?? BASE).replace(/\/$/, '');
+        this.limit   = opts.limit;
+        this.timeout = opts.timeout ?? 10_000;
     }
 
     // ── Internal helpers ───────────────────────────────────────────────────────
@@ -95,7 +99,7 @@ export class BinanceProvider implements DataProvider {
         if (startTime !== undefined) url += `&startTime=${startTime}`;
         if (endTime   !== undefined) url += `&endTime=${endTime}`;
 
-        const res = await fetch(url);
+        const res = await fetch(url, { signal: AbortSignal.timeout(this.timeout) });
         if (!res.ok) throw new Error(`Binance ${res.status}: ${await res.text().catch(() => '')}`);
         return res.json() as Promise<KLine[]>;
     }
@@ -171,6 +175,7 @@ export class BinanceProvider implements DataProvider {
 
         const res = await fetch(
             `${this.base}/ticker/24hr?symbol=${encodeURIComponent(instrumentId)}`,
+            { signal: AbortSignal.timeout(this.timeout) },
         );
         if (!res.ok) throw new Error(`Binance ticker ${res.status}`);
 

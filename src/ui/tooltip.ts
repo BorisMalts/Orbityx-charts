@@ -11,8 +11,7 @@
  *             so every field is known non-undefined to the compiler
  *  - Duplicate `formatDate` declaration removed; replaced by local `formatTimestamp`
  */
-import type ChartEngine from '../core/chart-engine.js';
-import type { Candle } from '../types/index.js';
+import type { Candle, IChartControls } from '../types/index.js';
 // Import only from the concrete module file to avoid a missing barrel-export error (TS2307).
 import { formatPrice, formatVolume } from '../utils/format.js';
 
@@ -45,7 +44,7 @@ function queryRequired(root: HTMLElement, selector: string): HTMLElement {
 }
 
 /** Inject the tooltip element into <body> and bind to the canvas. */
-export function initTooltip(engine: ChartEngine): HTMLDivElement {
+export function initTooltip(engine: IChartControls): HTMLDivElement {
     const tooltip = createTooltipElement();
     document.body.appendChild(tooltip);
 
@@ -130,7 +129,7 @@ function createTooltipElement(): HTMLDivElement {
 function populateTooltip(
     refs: TooltipRefs,
     candle: Candle,
-    engine: ChartEngine,
+    engine: IChartControls,
 ): void {
     const isUp     = candle.close >= candle.open;
     const delta    = candle.close - candle.open;

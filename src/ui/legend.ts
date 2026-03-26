@@ -77,8 +77,10 @@ function renderMeta(i: Instrument): void {
 
     const iconEl = document.querySelector<HTMLElement>('.symbol-icon');
     if (iconEl) {
+        const fallbackColor = getComputedStyle(document.documentElement)
+            .getPropertyValue('--orbityx-muted-text').trim() || '#888';
         iconEl.textContent   = i.icon ?? i.symbol[0] ?? '?';
-        iconEl.style.color   = i.iconColor ?? '#888';
+        iconEl.style.color   = i.iconColor ?? fallbackColor;
         iconEl.style.borderColor = i.iconColor ?? 'transparent';
     }
 }
@@ -106,6 +108,12 @@ function renderStats(
         const sign = isUp ? '▲' : '▼';
         changeEl.textContent = `${sign} ${fmt(Math.abs(delta))} (${Math.abs(deltaPct).toFixed(2)}%)`;
         changeEl.className   = `price-change ${isUp ? 'change-up' : 'change-down'}`;
+    }
+
+    // Announce price change to screen readers
+    const srRegion = document.getElementById('orbityx-sr-live');
+    if (srRegion) {
+        srRegion.textContent = `${instrument.symbol} price: ${fmt(latest.close)}, change: ${delta >= 0 ? 'up' : 'down'} ${Math.abs(deltaPct).toFixed(2)} percent`;
     }
 
     // 24 h stats — provider data wins; fall back to computed

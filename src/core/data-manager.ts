@@ -11,11 +11,23 @@
  *    timestamp and merges them into the front of the cache. Used by
  *    OrbityxChart.loadMoreHistory() for seamless infinite-scroll backwards.
  */
-import type { Candle, RawCandle, MarketStats } from '../types/index.js';
+import type { Candle, RawCandle, MarketStats, ICandleFetcher } from '../types/index.js';
 import { parseISO } from '../utils/date.js';
 import { registry } from '../services/api.js';
 
+/**
+ * Default fetcher — delegates to the ProviderRegistry singleton.
+ * Can be overridden via DataManager.setFetcher() for testing or
+ * when multiple independent DataManager instances are needed (DIP).
+ */
+const defaultFetcher: ICandleFetcher = {
+    fetchCandles: (req) => registry.fetchCandles(req),
+};
+
 type CandleCallback = (candles: Candle[]) => void;
+
+/** Maximum number of candles to keep in memory. Oldest entries are trimmed when exceeded. */
+const MAX_CACHE_SIZE = 10_000;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Normalisation
@@ -69,11 +81,28 @@ class DataManager {
     /** Candles sorted ascending by timestamp. */
     private cache: Candle[] = [];
     private subscribers: CandleCallback[] = [];
+    private maxCacheSize: number = MAX_CACHE_SIZE;
+
+    /** Injected data fetcher (DIP — depends on abstraction, not registry singleton). */
+    private fetcher: ICandleFetcher;
 
     /** Currently active instrument id (informational, for UI modules). */
     currentInstrumentId = '';
     /** Currently active timeframe (informational, for UI modules). */
     currentTimeframe = '';
+
+    constructor(fetcher: ICandleFetcher = defaultFetcher) {
+        this.fetcher = fetcher;
+    }
+
+    /** Replace the data fetcher (useful for testing or multi-instance setups). */
+    setFetcher(fetcher: ICandleFetcher): void {
+        this.fetcher = fetcher;
+    }
+
+    setMaxCacheSize(size: number): void {
+        this.maxCacheSize = Math.max(100, size);
+    }
 
     // ── Loading ──────────────────────────────────────────────────────────────
 
@@ -85,13 +114,14 @@ class DataManager {
         this.currentInstrumentId = instrumentId;
         this.currentTimeframe    = timeframe;
 
-        const raw = await registry.fetchCandles({ instrumentId, timeframe });
+        const raw = await this.fetcher.fetchCandles({ instrumentId, timeframe });
 
         this.cache = (raw as unknown[])
             .map(normalise)
             .filter(isValid)
             .sort((a, b) => a.timestamp - b.timestamp);
 
+        this.trimCache();
         this.notify();
         return [...this.cache];
     }
@@ -111,7 +141,7 @@ class DataManager {
         timeframe:    string,
         endTime:      number,
     ): Promise<number> {
-        const raw = await registry.fetchCandles({
+        const raw = await this.fetcher.fetchCandles({
             instrumentId,
             timeframe,
             to: endTime, // signal to the provider: single backwards page
@@ -132,6 +162,7 @@ class DataManager {
         this.cache = [...older, ...this.cache]
             .sort((a, b) => a.timestamp - b.timestamp);
 
+        this.trimCache();
         this.notify();
         return older.length;
     }
@@ -165,6 +196,7 @@ class DataManager {
         } else {
             this.cache.push(candle);
         }
+        this.trimCache();
         this.notify();
     }
 
@@ -182,6 +214,18 @@ class DataManager {
         };
         socket.addEventListener('message', handler);
         return () => socket.removeEventListener('message', handler);
+    }
+
+    /** Clear all cached candles and notify subscribers. */
+    clear(): void {
+        this.cache = [];
+        this.notify();
+    }
+
+    private trimCache(): void {
+        if (this.cache.length > this.maxCacheSize) {
+            this.cache = this.cache.slice(this.cache.length - this.maxCacheSize);
+        }
     }
 
     // ── Pub/Sub ───────────────────────────────────────────────────────────────
